@@ -41,6 +41,10 @@ local apiHeaderVersion = "2017-06-01"
 local market = "Coinbase"
 local accountNumber = "Main"
 
+-- Some currency symbols are not convertable via Coinbase's API
+-- so we omit them during our account refresh cycle
+local ommittedCurrencies = {"REPV2"}
+
 function SupportsBank (protocol, bankCode)
   return protocol == ProtocolWebBanking and bankCode == "Coinbase Account"
 end
@@ -68,23 +72,25 @@ function RefreshAccount (account, since)
   balances = queryPrivate("accounts")
 
   for key, value in pairs(balances) do
-    prices = queryPublic("exchange-rates", "?currency=" .. value["currency"]["code"])
-    if value["type"] == "fiat" then
-      s[#s+1] = {
-        name = value["currency"]["name"],
-        market = market,
-        currency = currency,
-        amount = value["balance"]["amount"]
-      }
-    else
-      s[#s+1] = {
-        name = value["currency"]["name"],
-        market = market,
-        currency = nil,
-        quantity = value["balance"]["amount"],
-        amount = value["native_balance"]["amount"],
-        price = prices["rates"][value["native_balance"]["currency"]]
-      }
+    if not isInArray(value["currency"]["code"], ommittedCurrencies) then
+      prices = queryPublic("exchange-rates", "?currency=" .. value["currency"]["code"])
+      if value["type"] == "fiat" then
+        s[#s+1] = {
+          name = value["currency"]["name"],
+          market = market,
+          currency = currency,
+          amount = value["balance"]["amount"]
+        }
+      else
+        s[#s+1] = {
+          name = value["currency"]["name"],
+          market = market,
+          currency = nil,
+          quantity = value["balance"]["amount"],
+          amount = value["native_balance"]["amount"],
+          price = prices["rates"][value["native_balance"]["currency"]]
+        }
+      end
     end
   end
 
@@ -92,6 +98,14 @@ function RefreshAccount (account, since)
 end
 
 function EndSession ()
+end
+
+function isInArray(value, array)
+  for i = 1, #array do
+    if array[i] == value then
+      return true
+    end
+  end
 end
 
 function bin2hex(s)
