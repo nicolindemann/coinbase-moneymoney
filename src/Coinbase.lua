@@ -74,18 +74,18 @@ function RefreshAccount (account, since)
 
     if value["type"] == "fiat" then
       s[#s+1] = {
-        name = value["currency"]["name"],
+        name = value["currency"]["name"] .. " (" .. ccy .. ")",
         market = market,
         currency = currency,
         amount = qty
       }
     else
-      if tonumber(qty) > 0 then
+      if tonumber(qty) ~= 0 then
         
         prices = queryPublic("exchange-rates", "?currency=" .. ccy)
 
         s[#s+1] = {
-          name = value["currency"]["name"],
+          name = value["currency"]["name"] .. " (" .. ccy .. ")",
           market = market,
           currency = nil,
           quantity = qty,
@@ -136,4 +136,3 @@ function queryPublic(method, query)
 
   return json:dictionary()["data"]
 end
-
