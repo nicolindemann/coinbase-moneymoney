@@ -74,7 +74,7 @@ function RefreshAccount (account, since)
 
     if value["type"] == "fiat" then
       s[#s+1] = {
-        name = value["currency"]["name"] .. " (" .. ccy .. ")",
+        name = value["currency"]["name"], -- .. " (" .. ccy .. ")", -- changing this loses saved balances in the db
         market = market,
         currency = currency,
         amount = qty
@@ -85,7 +85,7 @@ function RefreshAccount (account, since)
         prices = queryPublic("exchange-rates", "?currency=" .. ccy)
 
         s[#s+1] = {
-          name = value["currency"]["name"] .. " (" .. ccy .. ")",
+          name = value["currency"]["name"], -- .. " (" .. ccy .. ")", -- changing this loses saved balances in the db
           market = market,
           currency = nil,
           quantity = qty,
