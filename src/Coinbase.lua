@@ -4,6 +4,7 @@
 -- Username: Coinbase API Key
 -- Password: Coinbase API Secret
 --
+-- Copyright (c) 2020 Martin Wilhelmi
 -- Copyright (c) 2017 Nico Lindemann
 --
 -- Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -25,7 +26,7 @@
 -- SOFTWARE.
 
 WebBanking {
-  version = 1.0,
+  version = 1.8,
   url = "https://api.coinbase.com",
   description = "Fetch balances from Coinbase API and list them as securities",
   services = { "Coinbase Account" },
@@ -37,7 +38,7 @@ local currency
 local balances
 local prices
 local apiUrlVersion = "v2"
-local apiHeaderVersion = "2017-06-01"
+local apiHeaderVersion = "2021-01-25"
 local market = "Coinbase"
 local accountNumber = "Main"
 
@@ -65,33 +66,34 @@ end
 
 function RefreshAccount (account, since)
   local s = {}
-  balances = queryPrivate("accounts")
+  accounts = queryPrivate("accounts?limit=100")
+  exchange_rates = queryPublic("exchange-rates", "?currency=" .. currency)
 
-  for key, value in pairs(balances) do
-
-    local qty = value["balance"]["amount"]
-    local ccy = value["currency"]["code"]
-
-    if value["type"] == "fiat" then
-      s[#s+1] = {
-        name = value["currency"]["name"], -- .. " (" .. ccy .. ")", -- changing this loses saved balances in the db
-        market = market,
-        currency = currency,
-        amount = qty
-      }
-    else
-      if tonumber(qty) ~= 0 then
-        
-        prices = queryPublic("exchange-rates", "?currency=" .. ccy)
-
+  for key, value in pairs(accounts) do
+    
+    if exchange_rates["rates"][value["currency"]["code"]] then
+      if value["type"] == "fiat" then
         s[#s+1] = {
-          name = value["currency"]["name"], -- .. " (" .. ccy .. ")", -- changing this loses saved balances in the db
+          name = value["currency"]["name"] .. " (" .. value["name"] .. ")",
           market = market,
-          currency = nil,
-          quantity = qty,
-          amount = value["native_balance"]["amount"],
-          price = prices["rates"][value["native_balance"]["currency"]]
+          currency = currency,
+          amount = value["balance"]["amount"]
         }
+      else
+
+        price = (1 / exchange_rates["rates"][value["currency"]["code"]])
+        quantity = value["balance"]["amount"]
+
+        if tonumber(quantity) ~= 0 then
+
+          s[#s+1] = {
+            name = value["currency"]["name"] .. " (" .. value["name"] .. ")",
+            market = market,
+            quantity = quantity,
+            amount = price * quantity,
+            price = price
+          }
+        end
       end
     end
   end
